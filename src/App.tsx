@@ -29,9 +29,9 @@ import {
 } from "lucide-react";
 
 export default function App() {
-  // Currently active selected verse
+  // Currently active selected verse (Catholic Douay-Rheims default)
   const [selectedVerse, setSelectedVerse] = useState<BibleVerse>(
-    CURATED_BIBLE_QUOTES[0] // Philippians 4:6-7
+    CURATED_BIBLE_QUOTES[0] // Wisdom 3:1-3
   );
 
   // Quote styling configuration state
@@ -146,14 +146,14 @@ export default function App() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base font-semibold tracking-tight text-[#2D2926]">
-                ScriptureLink <span className="text-[#8C7B70] font-normal">for OneNote</span>
+                Catholic ScriptureLink <span className="text-[#8C7B70] font-normal">for OneNote</span>
               </h1>
               <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md bg-[#FAF9F8] text-[#4A1D1D] border border-[#D1C7BD]">
-                Studio
+                Catholic Edition • 73 Books
               </span>
             </div>
             <p className="text-[11px] text-[#8C7B70] hidden sm:block">
-              Search scriptures • Craft quote card aesthetics • Insert directly into OneNote
+              Douay-Rheims & Catholic Canon • Quote Designer • Insert directly to OneNote (GitHub Pages Ready)
             </p>
           </div>
         </div>

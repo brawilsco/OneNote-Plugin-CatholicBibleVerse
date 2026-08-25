@@ -1,6 +1,6 @@
 {
-  "name": "OneNote Bible Quote Studio",
-  "description": "A OneNote add-in and quote card studio to search scripture by keyword or reference, design quotes with stylish themes and typography, and insert directly into OneNote pages.",
+  "name": "Catholic OneNote Scripture Studio",
+  "description": "A standalone client-side Catholic Bible quote designer and OneNote add-in. Features all 73 Catholic canon books (including Deuterocanonical texts), Douay-Rheims & CPDV translations, high-res canvas exports, and direct OneNote page insertion—ready for static GitHub Pages hosting with no server required.",
   "requestFramePermissions": ["clipboard-read", "clipboard-write"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

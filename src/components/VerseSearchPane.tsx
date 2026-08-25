@@ -21,6 +21,7 @@ import {
   Loader2,
   ChevronRight,
   Info,
+  Cross,
 } from "lucide-react";
 
 interface VerseSearchPaneProps {
@@ -39,11 +40,11 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
   const [isPending, startTransition] = useTransition();
 
-  // Exact Reference fields
-  const [selectedBook, setSelectedBook] = useState("John");
+  // Exact Reference fields (default to Wisdom or Philippians)
+  const [selectedBook, setSelectedBook] = useState("Wisdom");
   const [selectedChapter, setSelectedChapter] = useState(3);
-  const [verseRange, setVerseRange] = useState("16");
-  const [translation, setTranslation] = useState("web");
+  const [verseRange, setVerseRange] = useState("1-3");
+  const [translation, setTranslation] = useState("dra");
   const [manualRefInput, setManualRefInput] = useState("");
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -82,13 +83,13 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
         setLookupError(`Could not find "${targetRef}". Please verify book, chapter, and verse number.`);
       }
     } catch (err: any) {
-      setLookupError("Failed to lookup passage. Please check connection.");
+      setLookupError("Failed to lookup passage. Please check your reference.");
     } finally {
       setIsLookingUp(false);
     }
   };
 
-  // Perform AI Semantic Search with Gemini 3.7 Flash
+  // Perform AI / Semantic Search
   const handleAiSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!aiQuery.trim()) return;
@@ -100,14 +101,13 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
       const results = await searchWithGemini(aiQuery.trim(), translation.toUpperCase());
       if (results && results.length > 0) {
         setAiResults(results);
-        // Automatically select first result for immediate preview
         onSelectVerse(results[0]);
         if (onAskAiStyle) onAskAiStyle(results[0]);
       } else {
-        setAiError("No verses returned. Try a different question or keyword.");
+        setAiError("No verses returned. Try a different topic or Catholic keyword.");
       }
     } catch (err: any) {
-      setAiError(err.message || "Failed to search with AI.");
+      setAiError(err.message || "Failed to search Catholic scriptures.");
     } finally {
       setIsAiSearching(false);
     }
@@ -125,15 +125,20 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
               <BookOpen className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-[#2D2926] tracking-tight">Scripture Finder</h2>
-              <p className="text-xs text-[#8C7B70]">Search by keyword, reference, or AI prompt</p>
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-sm font-bold text-[#2D2926] tracking-tight">Catholic Scripture Finder</h2>
+                <span className="px-1.5 py-0.2 bg-[#4A1D1D]/10 text-[#4A1D1D] text-[10px] font-bold rounded">
+                  73 Books
+                </span>
+              </div>
+              <p className="text-xs text-[#8C7B70]">Douay-Rheims & Catholic Biblical Canon</p>
             </div>
           </div>
           <button
             id="btn-random-verse"
             onClick={handleRandomQuote}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[#4A1D1D] bg-[#FAF9F8] hover:bg-[#F5F2F0] rounded-md transition-colors border border-[#D1C7BD]"
-            title="Discover a random inspirational verse"
+            title="Discover a random Catholic verse"
           >
             <Shuffle className="w-3.5 h-3.5 text-[#8C7B70]" />
             <span>Random</span>
@@ -152,7 +157,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
             }`}
           >
             <Search className="w-3.5 h-3.5" />
-            <span>Keyword</span>
+            <span>Topics</span>
           </button>
           <button
             id="tab-search-reference"
@@ -164,7 +169,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>Reference</span>
+            <span>73 Books</span>
           </button>
           <button
             id="tab-search-ai"
@@ -196,7 +201,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                   setKeyword(e.target.value);
                 });
               }}
-              placeholder="Search keyword (e.g. peace, strength, anxiety, love)..."
+              placeholder="Search (e.g. Wisdom, Magnificat, Eucharist, peace, charity)..."
               className="w-full pl-9 pr-4 py-2 bg-[#FAF9F8] border border-[#D1C7BD] rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A1D1D] text-[#2D2926] placeholder-[#8C7B70]"
             />
             {keyword && (
@@ -209,11 +214,11 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
             )}
           </div>
 
-          {/* Popular Topic Pills */}
+          {/* Catholic Topic Pills */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-bold text-[#8C7B70] uppercase tracking-wider">
-                Browse by Topic
+                Browse Catholic Topics
               </span>
               {selectedTopic !== "all" && (
                 <button
@@ -233,7 +238,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                     : "bg-[#FAF9F8] text-[#635B55] hover:bg-[#F5F2F0] border border-[#E0D7D0]"
                 }`}
               >
-                All Topics ({CURATED_BIBLE_QUOTES.length})
+                All Verses ({CURATED_BIBLE_QUOTES.length})
               </button>
               {POPULAR_TOPICS.map((topic) => (
                 <button
@@ -264,7 +269,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                 <Info className="w-6 h-6 mx-auto text-[#8C7B70] mb-2" />
                 <p className="text-xs font-semibold text-[#2D2926]">No verses found</p>
                 <p className="text-[11px] text-[#8C7B70] mt-1">
-                  Try searching a different keyword, or switch to the <strong>AI Finder</strong> tab to search across the entire Bible!
+                  Try searching a keyword like <em>Wisdom</em>, <em>Sirach</em>, <em>Mary</em>, or <em>Eucharist</em>, or switch to the <strong>73 Books</strong> reference tab.
                 </p>
               </div>
             ) : (
@@ -316,13 +321,13 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
         </div>
       )}
 
-      {/* Tab 2: Exact Reference Lookup */}
+      {/* Tab 2: Exact Reference Lookup (73 Catholic Books) */}
       {activeTab === "reference" && (
         <div className="flex flex-col flex-1 overflow-y-auto p-4 space-y-4">
           {/* Quick Direct Input */}
           <div className="bg-[#FAF9F8] p-3.5 rounded-xl border border-[#E0D7D0]">
             <label className="block text-xs font-bold text-[#2D2926] mb-1.5">
-              Quick Reference Entry
+              Quick Catholic Reference Entry
             </label>
             <div className="flex gap-2">
               <input
@@ -333,7 +338,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleExactLookup();
                 }}
-                placeholder="e.g. Psalm 91:1-2 or Romans 8:28"
+                placeholder="e.g. Wisdom 3:1-3, Sirach 2:1, Luke 1:28, or Psalm 22:1"
                 className="flex-1 px-3 py-2 bg-white border border-[#D1C7BD] rounded-lg text-xs text-[#2D2926] focus:ring-2 focus:ring-[#4A1D1D] focus:outline-none placeholder-[#8C7B70]"
               />
               <button
@@ -352,14 +357,19 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
             )}
           </div>
 
-          {/* Interactive Chapter & Verse Picker */}
+          {/* Interactive Chapter & Verse Picker for All 73 Catholic Books */}
           <div className="space-y-3 bg-white p-3.5 rounded-xl border border-[#E0D7D0]">
-            <h3 className="text-xs font-bold text-[#2D2926] flex items-center gap-1.5">
-              <SlidersHorizontal className="w-3.5 h-3.5 text-[#8C7B70]" />
-              <span>Scripture Book Explorer</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-[#2D2926] flex items-center gap-1.5">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#8C7B70]" />
+                <span>Catholic Canon Book Picker</span>
+              </h3>
+              <span className="text-[10px] text-[#4A1D1D] font-bold bg-[#4A1D1D]/10 px-1.5 py-0.5 rounded">
+                73 Books
+              </span>
+            </div>
 
-            {/* Book Selector */}
+            {/* Book Selector grouped by Catholic Biblical Sections */}
             <div>
               <label className="block text-[11px] font-medium text-[#635B55] mb-1">Book</label>
               <select
@@ -371,15 +381,57 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                 }}
                 className="w-full px-2.5 py-2 bg-[#FAF9F8] border border-[#D1C7BD] rounded-lg text-xs font-medium text-[#2D2926] focus:ring-2 focus:ring-[#4A1D1D] focus:outline-none"
               >
-                <optgroup label="New Testament">
-                  {BIBLE_BOOKS.filter((b) => b.testament === "New").map((b) => (
+                <optgroup label="Deuterocanonical Books (Catholic Canon)">
+                  {BIBLE_BOOKS.filter((b) => b.isDeuterocanonical).map((b) => (
+                    <option key={b.name} value={b.name}>
+                      ★ {b.name} ({b.chapters} ch.)
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Gospels & Acts (New Testament)">
+                  {BIBLE_BOOKS.filter((b) => b.category === "Gospels" || b.category === "Acts").map((b) => (
                     <option key={b.name} value={b.name}>
                       {b.name} ({b.chapters} ch.)
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="Old Testament">
-                  {BIBLE_BOOKS.filter((b) => b.testament === "Old").map((b) => (
+                <optgroup label="Pauline & Catholic Epistles">
+                  {BIBLE_BOOKS.filter((b) => b.category === "Epistles").map((b) => (
+                    <option key={b.name} value={b.name}>
+                      {b.name} ({b.chapters} ch.)
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Apocalypse / Revelation">
+                  {BIBLE_BOOKS.filter((b) => b.category === "Revelation").map((b) => (
+                    <option key={b.name} value={b.name}>
+                      {b.name} ({b.chapters} ch.)
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Old Testament - Pentateuch">
+                  {BIBLE_BOOKS.filter((b) => b.category === "Pentateuch").map((b) => (
+                    <option key={b.name} value={b.name}>
+                      {b.name} ({b.chapters} ch.)
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Old Testament - Historical">
+                  {BIBLE_BOOKS.filter((b) => b.category === "Historical" && !b.isDeuterocanonical).map((b) => (
+                    <option key={b.name} value={b.name}>
+                      {b.name} ({b.chapters} ch.)
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Old Testament - Wisdom & Poetry">
+                  {BIBLE_BOOKS.filter((b) => b.category === "Wisdom" && !b.isDeuterocanonical).map((b) => (
+                    <option key={b.name} value={b.name}>
+                      {b.name} ({b.chapters} ch.)
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Old Testament - Prophets">
+                  {BIBLE_BOOKS.filter((b) => b.category === "Prophets" && !b.isDeuterocanonical).map((b) => (
                     <option key={b.name} value={b.name}>
                       {b.name} ({b.chapters} ch.)
                     </option>
@@ -411,16 +463,16 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                   type="text"
                   value={verseRange}
                   onChange={(e) => setVerseRange(e.target.value)}
-                  placeholder="e.g. 16 or 1-4"
+                  placeholder="e.g. 1-3 or 28"
                   className="w-full px-2.5 py-1.5 bg-[#FAF9F8] border border-[#D1C7BD] rounded-lg text-xs text-[#2D2926] focus:ring-2 focus:ring-[#4A1D1D] focus:outline-none placeholder-[#8C7B70]"
                 />
               </div>
             </div>
 
-            {/* Translation Selector */}
+            {/* Catholic Translation Selector */}
             <div>
               <label className="block text-[11px] font-medium text-[#635B55] mb-1">
-                Translation
+                Catholic Translation
               </label>
               <select
                 id="select-translation"
@@ -428,10 +480,11 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                 onChange={(e) => setTranslation(e.target.value)}
                 className="w-full px-2.5 py-1.5 bg-[#FAF9F8] border border-[#D1C7BD] rounded-lg text-xs text-[#2D2926] focus:ring-2 focus:ring-[#4A1D1D] focus:outline-none"
               >
-                <option value="web">World English Bible (WEB - Modern Public Domain)</option>
-                <option value="kjv">King James Version (KJV - Classical)</option>
-                <option value="bbe">Bible in Basic English (BBE)</option>
-                <option value="asv">American Standard Version (ASV)</option>
+                <option value="dra">Douay-Rheims Catholic Bible (DRA - Full 73 Books)</option>
+                <option value="cpdv">Catholic Public Domain Version (CPDV)</option>
+                <option value="clementine">Clementine Latin Vulgate (Official Catholic)</option>
+                <option value="web">World English Bible (WEB)</option>
+                <option value="kjv">King James Version (KJV)</option>
               </select>
             </div>
 
@@ -446,19 +499,21 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
             </button>
           </div>
 
-          {/* Quick Popular Chapters */}
+          {/* Quick Catholic Passages */}
           <div>
             <span className="text-[11px] font-bold text-[#8C7B70] uppercase tracking-wider block mb-2">
-              Popular Study Passages
+              Beloved Catholic Passages
             </span>
             <div className="grid grid-cols-2 gap-2 text-xs">
               {[
-                { ref: "Psalm 23:1-6", desc: "The Shepherd Psalm" },
-                { ref: "1 Corinthians 13:4-8", desc: "The Love Chapter" },
-                { ref: "Romans 8:38-39", desc: "Unbreakable Love" },
-                { ref: "Isaiah 40:28-31", desc: "Renewed Strength" },
-                { ref: "Matthew 6:25-34", desc: "Do Not Worry" },
-                { ref: "Hebrews 11:1-6", desc: "Hall of Faith" },
+                { ref: "Wisdom 3:1-3", desc: "Souls of the Just" },
+                { ref: "Luke 1:46-49", desc: "The Magnificat" },
+                { ref: "Matthew 26:26-28", desc: "The Holy Eucharist" },
+                { ref: "Philippians 4:6-7", desc: "Peace of God" },
+                { ref: "Sirach 2:1-3", desc: "Preparing for Trials" },
+                { ref: "1 Corinthians 13:4-8", desc: "Hymn to Charity" },
+                { ref: "Tobit 12:8-9", desc: "Prayer, Fasting, Alms" },
+                { ref: "Psalm 22:1-3", desc: "The Shepherd Psalm (Ps 23)" },
               ].map((item) => (
                 <button
                   key={item.ref}
@@ -474,16 +529,16 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
         </div>
       )}
 
-      {/* Tab 3: Gemini AI Finder */}
+      {/* Tab 3: Catholic AI & Thematic Finder */}
       {activeTab === "ai" && (
         <div className="flex flex-col flex-1 overflow-y-auto p-4 space-y-4">
           <div className="bg-gradient-to-br from-[#4A1D1D] via-[#3B1717] to-[#250E0E] p-4 rounded-xl text-white shadow-md border border-[#4A1D1D]/40">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-              <h3 className="text-xs font-bold tracking-tight">Gemini AI Scripture Assistant</h3>
+              <h3 className="text-xs font-bold tracking-tight">Catholic Scripture Assistant</h3>
             </div>
             <p className="text-[11px] text-[#E0D7D0] leading-relaxed">
-              Describe your mood, situation, life question, or prayer focus, and Gemini will find the most fitting scriptures with context.
+              Describe your prayer intention, devotional theme (Marian, Eucharistic, Lent, peace), or life question to find matching Catholic scriptures across the 73 books.
             </p>
 
             <form onSubmit={handleAiSearch} className="mt-3 space-y-2">
@@ -492,7 +547,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                 rows={3}
                 value={aiQuery}
                 onChange={(e) => setAiQuery(e.target.value)}
-                placeholder="e.g. 'Verses for when I feel overwhelmed at work', 'dealing with forgiveness', or 'praying for patience and healing'..."
+                placeholder="e.g. 'Marian prayer and intercession', 'Eucharistic presence and adoration', 'steadfast courage when tempted (Sirach)', or 'consolation for grieving'..."
                 className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded-lg text-xs text-white placeholder-[#D1C7BD]/70 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] resize-none"
               />
               <button
@@ -504,37 +559,36 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                 {isAiSearching ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Searching Scriptures...</span>
+                    <span>Searching Catholic Scriptures...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    <span>Find Relevant Scriptures</span>
+                    <span>Discover Scriptures</span>
                   </>
                 )}
               </button>
             </form>
           </div>
 
-          {/* Quick AI Prompts */}
+          {/* Quick Catholic Prompt Ideas */}
           <div>
             <span className="text-[11px] font-bold text-[#8C7B70] uppercase tracking-wider block mb-2">
-              Quick Prompt Ideas
+              Catholic Devotional Prompts
             </span>
             <div className="flex flex-wrap gap-1.5">
               {[
-                "Starting a new job / season",
-                "Overcoming anxiety & panic",
-                "Forgiving someone who hurt me",
-                "Morning prayer & gratitude",
-                "Grief & physical healing",
-                "Decision making & wisdom",
+                "Marian prayer & grace",
+                "Eucharist & Bread of Life",
+                "Trials & spiritual combat (Sirach 2)",
+                "Souls of the faithful departed (Wisdom 3)",
+                "Almsgiving & charity (Tobit)",
+                "Night prayer & peace (Psalm 90)",
               ].map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => {
                     setAiQuery(prompt);
-                    // trigger search
                     setIsAiSearching(true);
                     searchWithGemini(prompt).then((results) => {
                       setAiResults(results);
@@ -561,7 +615,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
           {aiResults.length > 0 && (
             <div className="space-y-3 pt-2">
               <span className="text-xs font-bold text-[#2D2926] block">
-                AI Suggested Passages ({aiResults.length})
+                Suggested Catholic Passages ({aiResults.length})
               </span>
               {aiResults.map((verse, idx) => (
                 <div
@@ -580,7 +634,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs font-bold text-[#2D2926]">{verse.reference}</span>
                     <span className="text-[10px] font-semibold text-[#4A1D1D] bg-[#FAF9F8] px-2 py-0.5 rounded-md border border-[#D1C7BD]">
-                      {verse.topic || "AI Pick"}
+                      {verse.topic || "Catholic Selection"}
                     </span>
                   </div>
                   <p className="text-xs text-[#2D2926] font-serif italic line-clamp-3">

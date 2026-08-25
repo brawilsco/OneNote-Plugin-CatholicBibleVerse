@@ -32,52 +32,52 @@ interface OneNoteCompanionProps {
 const INITIAL_SECTIONS: OneNoteSection[] = [
   {
     id: "sec-devotional",
-    name: "Morning Devotional",
+    name: "Lectio Divina & Rosary",
     color: "#7719AA", // OneNote Purple
     pages: [
       {
         id: "page-1",
-        title: "Walking in Peace & Trust",
+        title: "Wisdom 3 & Peace for the Faithful Departed",
         date: "Tuesday, August 25, 2026  •  8:45 AM",
         bodyText:
-          "Notes from today's quiet time:\nReflecting on Philippians 4 and God's peace that surpasses all understanding. When worries arise about the upcoming projects, I need to bring them immediately to prayer with thanksgiving instead of letting them spiral.",
+          "Lectio Divina reflection on Wisdom 3:1-3:\n'The souls of the just are in the hand of God, and the torment of death shall not touch them.'\nMeditation: A profound sense of tranquility knowing that in God's hands, our departed loved ones and our daily trials are held in eternal mercy.",
         insertedQuotes: [],
       },
       {
         id: "page-2",
-        title: "Strength in the Wilderness",
+        title: "The Magnificat (Luke 1:46-49)",
         date: "Monday, August 24, 2026  •  7:15 AM",
         bodyText:
-          "Key takeaway: Isaiah 40 promises that those who wait on the Lord will renew their strength. It is not about my human stamina, but resting in His infinite grace.",
+          "Reflecting on Our Lady's humility and complete surrender in the Magnificat. 'Because he that is mighty hath done great things to me; and holy is his name.' Praying for a humble, receptive heart today.",
         insertedQuotes: [],
       },
     ],
   },
   {
     id: "sec-sermon",
-    name: "Sermon Journal",
+    name: "Mass & Homily Journal",
     color: "#0078D4", // Blue
     pages: [
       {
         id: "page-3",
-        title: "Sunday Sermon: The Good Shepherd",
+        title: "Sunday Mass: The Bread of Life (John 6)",
         date: "Sunday, August 23, 2026  •  10:30 AM",
         bodyText:
-          "Sermon passage: Psalm 23. The shepherd goes before the sheep, prepares a table in the presence of enemies, and restores the soul.",
+          "Gospel reading: John 6:35 / Matthew 26:26-28. Homily focus on the Real Presence of Christ in the Holy Eucharist as our true source and summit.",
         insertedQuotes: [],
       },
     ],
   },
   {
     id: "sec-prayer",
-    name: "Prayer & Study",
-    color: "#107C41", // Excel/Office Green
+    name: "Holy Hour & Petitions",
+    color: "#107C41", // Green
     pages: [
       {
         id: "page-4",
-        title: "Family & Health Petitions",
+        title: "Spiritual Combat & Fortitude (Sirach 2)",
         date: "Saturday, August 22, 2026  •  9:00 PM",
-        bodyText: "Praying for guidance in decisions, physical healing, and peace for loved ones.",
+        bodyText: "Notes from Eucharistic Adoration: 'Son, when thou comest to the service of God, stand in justice and in fear, and prepare thy soul for temptation.' (Sirach 2:1)",
         insertedQuotes: [],
       },
     ],
