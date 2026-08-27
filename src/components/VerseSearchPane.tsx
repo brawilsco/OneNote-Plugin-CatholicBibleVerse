@@ -8,39 +8,32 @@ import {
 import {
   searchLocalBibleQuotes,
   lookupPassage,
-  searchWithGemini,
 } from "../services/bibleService";
 import {
   Search,
-  Sparkles,
   BookOpen,
   SlidersHorizontal,
-  BookmarkCheck,
   Flame,
   Shuffle,
   Loader2,
-  ChevronRight,
   Info,
-  Cross,
 } from "lucide-react";
 
 interface VerseSearchPaneProps {
   selectedVerse: BibleVerse;
   onSelectVerse: (verse: BibleVerse) => void;
-  onAskAiStyle?: (verse: BibleVerse) => void;
 }
 
 export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
   selectedVerse,
   onSelectVerse,
-  onAskAiStyle,
 }) => {
-  const [activeTab, setActiveTab] = useState<"keyword" | "reference" | "ai">("keyword");
+  const [activeTab, setActiveTab] = useState<"keyword" | "reference">("keyword");
   const [keyword, setKeyword] = useState("");
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
-  // Exact Reference fields (default to Wisdom or Philippians)
+  // Exact Reference fields
   const [selectedBook, setSelectedBook] = useState("Wisdom");
   const [selectedChapter, setSelectedChapter] = useState(3);
   const [verseRange, setVerseRange] = useState("1-3");
@@ -48,12 +41,6 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
   const [manualRefInput, setManualRefInput] = useState("");
   const [isLookingUp, setIsLookingUp] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
-
-  // AI Search state
-  const [aiQuery, setAiQuery] = useState("");
-  const [aiResults, setAiResults] = useState<BibleVerse[]>([]);
-  const [isAiSearching, setIsAiSearching] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
 
   // Local search results
   const localResults = searchLocalBibleQuotes(keyword, selectedTopic);
@@ -63,7 +50,6 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
     const randomIndex = Math.floor(Math.random() * CURATED_BIBLE_QUOTES.length);
     const chosen = CURATED_BIBLE_QUOTES[randomIndex];
     onSelectVerse(chosen);
-    if (onAskAiStyle) onAskAiStyle(chosen);
   };
 
   // Perform Exact Reference lookup
@@ -78,38 +64,13 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
       const verse = await lookupPassage(targetRef.trim(), translation);
       if (verse) {
         onSelectVerse(verse);
-        if (onAskAiStyle) onAskAiStyle(verse);
       } else {
         setLookupError(`Could not find "${targetRef}". Please verify book, chapter, and verse number.`);
       }
-    } catch (err: any) {
+    } catch {
       setLookupError("Failed to lookup passage. Please check your reference.");
     } finally {
       setIsLookingUp(false);
-    }
-  };
-
-  // Perform AI / Semantic Search
-  const handleAiSearch = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!aiQuery.trim()) return;
-
-    setIsAiSearching(true);
-    setAiError(null);
-
-    try {
-      const results = await searchWithGemini(aiQuery.trim(), translation.toUpperCase());
-      if (results && results.length > 0) {
-        setAiResults(results);
-        onSelectVerse(results[0]);
-        if (onAskAiStyle) onAskAiStyle(results[0]);
-      } else {
-        setAiError("No verses returned. Try a different topic or Catholic keyword.");
-      }
-    } catch (err: any) {
-      setAiError(err.message || "Failed to search Catholic scriptures.");
-    } finally {
-      setIsAiSearching(false);
     }
   };
 
@@ -146,7 +107,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
         </div>
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-3 gap-1 bg-[#F5F2F0] p-1 rounded-lg border border-[#E0D7D0] text-xs font-medium">
+        <div className="grid grid-cols-2 gap-1 bg-[#F5F2F0] p-1 rounded-lg border border-[#E0D7D0] text-xs font-medium">
           <button
             id="tab-search-keyword"
             onClick={() => setActiveTab("keyword")}
@@ -157,7 +118,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
             }`}
           >
             <Search className="w-3.5 h-3.5" />
-            <span>Topics</span>
+            <span>Topics & Keywords</span>
           </button>
           <button
             id="tab-search-reference"
@@ -169,19 +130,7 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>73 Books</span>
-          </button>
-          <button
-            id="tab-search-ai"
-            onClick={() => setActiveTab("ai")}
-            className={`py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === "ai"
-                ? "bg-[#4A1D1D] text-white shadow-xs font-semibold"
-                : "text-[#8C7B70] hover:text-[#2D2926]"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI Finder</span>
+            <span>73 Books Reference</span>
           </button>
         </div>
       </div>
@@ -281,7 +230,6 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
                     id={`verse-card-${index}`}
                     onClick={() => {
                       onSelectVerse(verse);
-                      if (onAskAiStyle) onAskAiStyle(verse);
                     }}
                     className={`p-3 rounded-xl cursor-pointer transition-all border ${
                       isSelected
@@ -526,129 +474,6 @@ export const VerseSearchPane: React.FC<VerseSearchPaneProps> = ({
               ))}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Tab 3: Catholic AI & Thematic Finder */}
-      {activeTab === "ai" && (
-        <div className="flex flex-col flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="bg-gradient-to-br from-[#4A1D1D] via-[#3B1717] to-[#250E0E] p-4 rounded-xl text-white shadow-md border border-[#4A1D1D]/40">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-[#D4AF37]" />
-              <h3 className="text-xs font-bold tracking-tight">Catholic Scripture Assistant</h3>
-            </div>
-            <p className="text-[11px] text-[#E0D7D0] leading-relaxed">
-              Describe your prayer intention, devotional theme (Marian, Eucharistic, Lent, peace), or life question to find matching Catholic scriptures across the 73 books.
-            </p>
-
-            <form onSubmit={handleAiSearch} className="mt-3 space-y-2">
-              <textarea
-                id="input-ai-prompt"
-                rows={3}
-                value={aiQuery}
-                onChange={(e) => setAiQuery(e.target.value)}
-                placeholder="e.g. 'Marian prayer and intercession', 'Eucharistic presence and adoration', 'steadfast courage when tempted (Sirach)', or 'consolation for grieving'..."
-                className="w-full px-3 py-2 bg-black/20 border border-white/20 rounded-lg text-xs text-white placeholder-[#D1C7BD]/70 focus:outline-none focus:ring-2 focus:ring-[#D4AF37] resize-none"
-              />
-              <button
-                id="btn-ai-search"
-                type="submit"
-                disabled={isAiSearching || !aiQuery.trim()}
-                className="w-full py-2 bg-[#FAF9F8] text-[#4A1D1D] font-bold rounded-lg text-xs hover:bg-white transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 shadow-xs"
-              >
-                {isAiSearching ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Searching Catholic Scriptures...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    <span>Discover Scriptures</span>
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* Quick Catholic Prompt Ideas */}
-          <div>
-            <span className="text-[11px] font-bold text-[#8C7B70] uppercase tracking-wider block mb-2">
-              Catholic Devotional Prompts
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              {[
-                "Marian prayer & grace",
-                "Eucharist & Bread of Life",
-                "Trials & spiritual combat (Sirach 2)",
-                "Souls of the faithful departed (Wisdom 3)",
-                "Almsgiving & charity (Tobit)",
-                "Night prayer & peace (Psalm 90)",
-              ].map((prompt) => (
-                <button
-                  key={prompt}
-                  onClick={() => {
-                    setAiQuery(prompt);
-                    setIsAiSearching(true);
-                    searchWithGemini(prompt).then((results) => {
-                      setAiResults(results);
-                      if (results[0]) onSelectVerse(results[0]);
-                      setIsAiSearching(false);
-                    });
-                  }}
-                  className="px-2.5 py-1 bg-white hover:bg-[#FAF9F8] text-[#635B55] hover:text-[#2D2926] rounded-md text-[11px] font-medium transition-colors border border-[#E0D7D0] hover:border-[#D1C7BD]"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* AI Results */}
-          {aiError && (
-            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-xs border border-red-200 flex items-center gap-2">
-              <Info className="w-4 h-4 shrink-0" />
-              <span>{aiError}</span>
-            </div>
-          )}
-
-          {aiResults.length > 0 && (
-            <div className="space-y-3 pt-2">
-              <span className="text-xs font-bold text-[#2D2926] block">
-                Suggested Catholic Passages ({aiResults.length})
-              </span>
-              {aiResults.map((verse, idx) => (
-                <div
-                  key={`ai-${verse.reference}-${idx}`}
-                  id={`ai-result-${idx}`}
-                  onClick={() => {
-                    onSelectVerse(verse);
-                    if (onAskAiStyle) onAskAiStyle(verse);
-                  }}
-                  className={`p-3.5 rounded-xl cursor-pointer transition-all border ${
-                    selectedVerse.reference === verse.reference
-                      ? "bg-[#FAF9F8] border-[#4A1D1D] shadow-xs ring-1 ring-[#4A1D1D]/30"
-                      : "bg-white border-[#E0D7D0] hover:border-[#D1C7BD] hover:bg-[#FAF9F8]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold text-[#2D2926]">{verse.reference}</span>
-                    <span className="text-[10px] font-semibold text-[#4A1D1D] bg-[#FAF9F8] px-2 py-0.5 rounded-md border border-[#D1C7BD]">
-                      {verse.topic || "Catholic Selection"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-[#2D2926] font-serif italic line-clamp-3">
-                    “{verse.text}”
-                  </p>
-                  {verse.insight && (
-                    <p className="text-[11px] text-[#4A1D1D] mt-2 pt-2 border-t border-[#E0D7D0] bg-[#FAF9F8] p-2 rounded-lg">
-                      💡 <strong>Context:</strong> {verse.insight}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>

@@ -7,20 +7,17 @@ import {
   OverlayType,
 } from "../types";
 import { THEME_PRESETS, FONT_OPTIONS } from "../data/bibleQuotes";
-import { getSmartStyleAdvice } from "../services/bibleService";
 import {
   Palette,
   Type,
   Ratio,
   Frame,
-  Sparkles,
   Sliders,
   AlignLeft,
   AlignCenter,
   AlignRight,
   Eye,
   Check,
-  Loader2,
   RefreshCw,
   Sun,
 } from "lucide-react";
@@ -37,33 +34,6 @@ export const QuoteDesigner: React.FC<QuoteDesignerProps> = ({
   onChangeConfig,
 }) => {
   const [activeSection, setActiveSection] = useState<"themes" | "typography" | "layout" | "decorations">("themes");
-  const [isAiStyling, setIsAiStyling] = useState(false);
-  const [aiStyleReason, setAiStyleReason] = useState<string | null>(null);
-
-  // Apply AI Smart Styling
-  const handleAiAutoStyle = async () => {
-    setIsAiStyling(true);
-    setAiStyleReason(null);
-    try {
-      const advice = await getSmartStyleAdvice(verse.reference, verse.text);
-      if (advice) {
-        const matchingTheme = THEME_PRESETS.find((t) => t.id === advice.themeId) || THEME_PRESETS[0];
-        onChangeConfig({
-          ...config,
-          themeId: matchingTheme.id,
-          fontFamily: advice.fontFamily || matchingTheme.fontFamily,
-          aspectRatio: (advice.recommendedAspect as AspectRatioType) || "4:3",
-          borderStyle: matchingTheme.borderStyle,
-          overlay: matchingTheme.overlay,
-        });
-        setAiStyleReason(advice.reason);
-      }
-    } catch (err) {
-      console.warn("AI styling failed:", err);
-    } finally {
-      setIsAiStyling(false);
-    }
-  };
 
   const handleSelectTheme = (themeId: string) => {
     const selectedTheme = THEME_PRESETS.find((t) => t.id === themeId);
@@ -126,40 +96,7 @@ export const QuoteDesigner: React.FC<QuoteDesignerProps> = ({
           <Palette className="w-4 h-4 text-[#4A1D1D]" />
           <h3 className="text-xs font-bold text-[#2D2926]">Card Theme & Typography</h3>
         </div>
-
-        <button
-          id="btn-ai-auto-style"
-          onClick={handleAiAutoStyle}
-          disabled={isAiStyling}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4A1D1D] hover:bg-[#3B1717] text-white rounded-md text-xs font-semibold shadow-2xs transition-all disabled:opacity-50"
-          title="Ask Gemini AI to select the optimal theme and typography"
-        >
-          {isAiStyling ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-          ) : (
-            <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-          )}
-          <span>AI Smart Style</span>
-        </button>
       </div>
-
-      {/* AI Styling Recommendation Note */}
-      {aiStyleReason && (
-        <div className="px-4 py-2 bg-[#FAF9F8] text-[#4A1D1D] text-xs border-b border-[#E0D7D0] flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
-            <span>
-              <strong>AI Match:</strong> {aiStyleReason}
-            </span>
-          </span>
-          <button
-            onClick={() => setAiStyleReason(null)}
-            className="text-[#8C7B70] hover:text-[#2D2926] text-[11px]"
-          >
-            ✕
-          </button>
-        </div>
-      )}
 
       {/* Sub-Navigation */}
       <div className="grid grid-cols-4 border-b border-[#E0D7D0] bg-[#F5F2F0] p-1 text-xs">
