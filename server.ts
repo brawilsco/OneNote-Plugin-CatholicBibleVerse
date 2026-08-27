@@ -37,7 +37,7 @@ app.get("/api/health", (_req: Request, res: Response) => {
 // AI Semantic Bible Search & Verse Discovery Endpoint
 app.post("/api/gemini/search-scripture", async (req: Request, res: Response) => {
   try {
-    const { query, translation = "WEB" } = req.body;
+    const { query, translation = "DRA" } = req.body;
     if (!query || typeof query !== "string") {
       return res.status(400).json({ error: "Search query is required" });
     }
@@ -49,10 +49,10 @@ app.post("/api/gemini/search-scripture", async (req: Request, res: Response) => 
       });
     }
 
-    const prompt = `You are a biblical scholar and scripture assistant for a OneNote Bible Study plugin.
+    const prompt = `You are a Catholic biblical scholar and scripture assistant for a OneNote Bible Study Add-in.
 A user is searching for Bible verses related to this query: "${query}".
-Suggest 4-6 of the most relevant, uplifting, and profound Bible verses matching this topic, emotion, or question.
-For each verse, provide the exact reference (e.g. "Philippians 4:6-7"), the full verbatim text (in ${translation} or modern English), the primary topic tag, a brief 1-sentence contextual insight on why it fits, and recommended aesthetic theme name (e.g. "Parchment & Calligraphy", "Deep Twilight", "Botanical Sage", "Minimalist Light", "Warm Sunset").`;
+Suggest 4-6 of the most relevant, uplifting, and profound Bible verses from the 73-book Catholic Canon (including Deuterocanonical books like Wisdom, Sirach, Tobit, Judith, 1 & 2 Maccabees, Baruch, or Job, Psalms, Gospels) in Douay-Rheims or Catholic translation.
+For each verse, provide the exact reference (e.g. "Wisdom 3:1-3", "Sirach 2:1-3", "Job 1:1", "Luke 1:28", "Philippians 4:6-7"), the full verbatim text, the primary topic tag, a brief 1-sentence contextual insight on why it fits, and recommended aesthetic theme name.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-3.7-flash",
@@ -67,9 +67,9 @@ For each verse, provide the exact reference (e.g. "Philippians 4:6-7"), the full
               items: {
                 type: Type.OBJECT,
                 properties: {
-                  reference: { type: Type.STRING, description: "e.g. John 3:16 or Psalm 23:1-3" },
+                  reference: { type: Type.STRING, description: "e.g. Wisdom 3:1-3 or Job 1:1" },
                   text: { type: Type.STRING, description: "The full verse text" },
-                  version: { type: Type.STRING, description: "Bible translation e.g. WEB, KJV, ESV" },
+                  version: { type: Type.STRING, description: "Bible translation e.g. DRA, Catholic Edition" },
                   topic: { type: Type.STRING, description: "Key theme e.g. Peace, Hope, Courage" },
                   insight: { type: Type.STRING, description: "Brief reflection/context on this scripture" },
                   suggestedTheme: { type: Type.STRING, description: "Recommended design theme" },
@@ -100,26 +100,26 @@ app.post("/api/gemini/suggest-style", async (req: Request, res: Response) => {
     const ai = getGenAI();
     if (!ai) {
       return res.json({
-        themeId: "botanical-sage",
-        fontFamily: "Playfair Display",
+        themeId: "parchment",
+        fontFamily: "Cormorant Garamond",
         aspectRatio: "4:3",
-        reason: "Default harmonic style",
+        reason: "Traditional Catholic manuscript presentation",
       });
     }
 
-    const prompt = `Analyze this Bible verse: "${reference} - ${text}".
+    const prompt = `Analyze this Catholic Bible verse: "${reference} - ${text}".
 Recommend the ideal visual styling preset to reflect its mood and reverence.
 Available themes:
-- 'minimal-light' (clean modern, high contrast)
 - 'parchment' (antique warm historical parchment, classic serif)
+- 'stained-glass' (vibrant jewel tones, gothic majesty)
 - 'midnight-gold' (regal deep obsidian dark with warm golden accents)
 - 'botanical-sage' (peaceful earthy sage green with floral botanical touch)
+- 'rose-quartz' (gentle soft rose and burgundy, Marian grace)
+- 'deep-navy' (serene deep sea blue and silver, Stella Maris)
+- 'minimal-light' (clean modern, high contrast)
 - 'sunset-terracotta' (warm radiant amber and terracotta)
-- 'modern-editorial' (chic high-fashion editorial typography)
-- 'stained-glass' (vibrant jewel tones, gothic majesty)
-- 'deep-navy' (serene deep sea blue and silver)
-- 'rose-quartz' (gentle soft rose and burgundy)
-- 'celestial' (starry indigo and ethereal light)
+- 'celestial-dawn' (ethereal resurrection lavender and gold)
+- 'charcoal-linen' (archival slate for scholarly study)
 
 Available fonts: 'Cinzel', 'Playfair Display', 'Cormorant Garamond', 'Great Vibes', 'Caveat', 'Dancing Script', 'Outfit', 'Syne', 'Fraunces'.
 
@@ -151,36 +151,48 @@ Return JSON with themeId, fontFamily, recommendedAspect ('4:3', '1:1', '16:9', '
       themeId: "parchment",
       fontFamily: "Cormorant Garamond",
       recommendedAspect: "4:3",
-      reason: "Classic timeless scripture presentation",
+      reason: "Classic timeless Catholic scripture presentation",
     });
   }
 });
 
-// Live Bible API proxy for any exact passage lookup
+// Live Bible API proxy for any exact passage lookup (Job 1:1, Sirach, Wisdom, Psalms, etc.)
 app.get("/api/bible/lookup", async (req: Request, res: Response) => {
   try {
     const ref = req.query.ref as string;
-    const translation = (req.query.translation as string) || "web";
+    const requestedTranslation = (req.query.translation as string) || "web";
     if (!ref) {
       return res.status(400).json({ error: "Reference 'ref' query parameter is required" });
     }
 
     const cleanRef = encodeURIComponent(ref.trim());
-    const apiUrl = `https://bible-api.com/${cleanRef}?translation=${translation}`;
-    const apiRes = await fetch(apiUrl);
+    
+    // Try multiple translation endpoints to guarantee text retrieval
+    const candidateTranslations = [requestedTranslation, "web", "kjv", "clementine"];
+    
+    for (const trans of candidateTranslations) {
+      try {
+        const apiUrl = `https://bible-api.com/${cleanRef}?translation=${trans}`;
+        const apiRes = await fetch(apiUrl);
 
-    if (!apiRes.ok) {
-      return res.status(apiRes.status).json({ error: "Could not find passage on Bible API" });
+        if (apiRes.ok) {
+          const data = await apiRes.json();
+          if (data && data.text && data.text.trim()) {
+            return res.json({
+              reference: data.reference || ref,
+              text: data.text.trim().replace(/\n+/g, " "),
+              translation_name: data.translation_name || trans.toUpperCase(),
+              translation_id: data.translation_id || trans,
+              verses: data.verses || [],
+            });
+          }
+        }
+      } catch {
+        // Try next candidate
+      }
     }
 
-    const data = await apiRes.json();
-    return res.json({
-      reference: data.reference,
-      text: data.text ? data.text.trim().replace(/\n+/g, " ") : "",
-      translation_name: data.translation_name || translation.toUpperCase(),
-      translation_id: data.translation_id || translation,
-      verses: data.verses || [],
-    });
+    return res.status(404).json({ error: `Could not find passage "${ref}"` });
   } catch (error: any) {
     console.error("Bible lookup proxy error:", error);
     return res.status(500).json({ error: "Failed to fetch from Bible API" });
@@ -201,10 +213,10 @@ app.get("/api/onenote/manifest.xml", (req: Request, res: Response) => {
   xsi:type="TaskPaneApp">
   <Id>b73d2a01-49b8-4c91-a1e4-8d9e26e3c509</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>OneNote Scripture Studio</ProviderName>
+  <ProviderName>Catholic Scripture Studio</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Bible Quote Studio" />
-  <Description DefaultValue="Search Bible quotes and insert stylish quote card images directly into your OneNote notebook pages." />
+  <DisplayName DefaultValue="Catholic Bible Quote Studio" />
+  <Description DefaultValue="Search 73-book Catholic Bible quotes and insert stylish quote card images directly into OneNote pages." />
   <IconUrl DefaultValue="${secureUrl}/favicon.ico" />
   <HighResolutionIconUrl DefaultValue="${secureUrl}/favicon.ico" />
   <SupportUrl DefaultValue="${secureUrl}" />
@@ -222,12 +234,12 @@ app.get("/api/onenote/manifest.xml", (req: Request, res: Response) => {
 </OfficeApp>`;
 
   res.setHeader("Content-Type", "application/xml");
-  res.setHeader("Content-Disposition", 'attachment; filename="onenote-bible-quote-manifest.xml"');
+  res.setHeader("Content-Disposition", 'inline; filename="manifest.xml"');
   res.send(manifestXml);
 });
 
-// Setup Vite or Static File Serving
-async function start() {
+// Setup Vite or static serving
+async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -243,8 +255,8 @@ async function start() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`OneNote Bible Quote Studio server running on port ${PORT}`);
+    console.log(`OneNote Catholic Scripture Studio server running on port ${PORT}`);
   });
 }
 
-start();
+startServer();

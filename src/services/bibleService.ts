@@ -1,5 +1,6 @@
 import { BibleVerse } from "../types";
 import { CURATED_BIBLE_QUOTES, BIBLE_BOOKS } from "../data/bibleQuotes";
+import { CATHOLIC_PASSAGE_DATABASE } from "../data/catholicPassages";
 
 /**
  * Searches the curated Catholic Bible quotes database by keyword, topic, or reference substring
@@ -36,7 +37,7 @@ export function searchLocalBibleQuotes(query: string, categoryFilter?: string): 
 }
 
 /**
- * Parses user input for exact Bible references (e.g. "Wisdom 3:1-3", "Sirach 2:1", "Luke 1:28", "John 3:16")
+ * Parses user input for exact Bible references (e.g. "Job 1:1", "Wisdom 3:1-3", "Sirach 2:1", "Luke 1:28", "John 3:16")
  */
 export function parseBibleReference(input: string): { book: string; chapter: number; verse?: string } | null {
   const trimmed = input.trim();
@@ -65,200 +66,102 @@ export function parseBibleReference(input: string): { book: string; chapter: num
 }
 
 /**
- * Fetches an exact passage from the public Bible API (CORS-friendly, client-side) or local Catholic database
- * Works 100% standalone without requiring any server backend.
+ * Fetches an exact passage from the Catholic database or public Bible APIs.
+ * Supports Job 1:1, Wisdom, Sirach, Tobit, and all 73 Catholic Biblical Canon books.
  */
 export async function lookupPassage(reference: string, translation: string = "dra"): Promise<BibleVerse | null> {
   const cleanRef = reference.trim();
+  const lowerRef = cleanRef.toLowerCase();
 
-  // 1. Check local curated Catholic quotes first
+  // 1. Check direct curated Catholic database (Curated Quotes)
   const localMatch = CURATED_BIBLE_QUOTES.find(
-    (q) => q.reference.toLowerCase() === cleanRef.toLowerCase()
+    (q) => q.reference.toLowerCase() === lowerRef
   );
   if (localMatch) {
     return localMatch;
   }
 
-  // 2. Direct client-side fetch to public Bible API (bible-api.com supports direct browser CORS)
-  try {
-    // Map translation codes for public APIs
-    let apiTranslation = translation.toLowerCase();
-    if (apiTranslation === "dra" || apiTranslation === "douay-rheims") {
-      apiTranslation = "cherokee"; // fallback if drb not directly on primary endpoint
-    }
-
-    const apiUrl = `https://bible-api.com/${encodeURIComponent(cleanRef)}?translation=${apiTranslation}`;
-    const res = await fetch(apiUrl);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.text) {
-        return {
-          reference: data.reference || cleanRef,
-          text: data.text.trim().replace(/\n+/g, " "),
-          version: data.translation_name || translation.toUpperCase(),
-          topic: "Scripture Study",
-        };
-      }
-    }
-  } catch (publicApiErr) {
-    console.warn("Direct public Bible API fetch error:", publicApiErr);
+  // 2. Check embedded Catholic Passages dictionary (e.g., "job 1:1", "sirach 2:1", etc.)
+  if (CATHOLIC_PASSAGE_DATABASE[lowerRef]) {
+    const entry = CATHOLIC_PASSAGE_DATABASE[lowerRef];
+    const parsed = parseBibleReference(cleanRef);
+    return {
+      reference: cleanRef,
+      text: entry.text,
+      version: "DRA",
+      topic: entry.topic || "Scripture Study",
+      book: parsed?.book,
+      chapter: parsed?.chapter,
+      verse: parsed?.verse,
+      insight: entry.insight,
+    };
   }
 
-  // 3. Optional fallback to local backend proxy if running in dev environment
+  // 3. Normalize reference for public Bible APIs
+  const parsed = parseBibleReference(cleanRef);
+  const normalizedQuery = parsed
+    ? `${parsed.book} ${parsed.chapter}${parsed.verse ? `:${parsed.verse}` : ""}`
+    : cleanRef;
+
+  // 4. Client-side fetch to public Bible API (supports WEB, KJV, and others with direct browser CORS)
+  // We try without hardcoded Cherokee fallback so it pulls standard English text
+  const translationsToTry = ["web", "kjv", "clementine"];
+  for (const trans of translationsToTry) {
+    try {
+      const apiUrl = `https://bible-api.com/${encodeURIComponent(normalizedQuery)}?translation=${trans}`;
+      const res = await fetch(apiUrl);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.text && data.text.trim()) {
+          return {
+            reference: data.reference || normalizedQuery,
+            text: data.text.trim().replace(/\n+/g, " "),
+            version: trans === "web" ? "Catholic Edition" : (data.translation_name || trans.toUpperCase()),
+            topic: "Scripture Study",
+            book: parsed?.book,
+            chapter: parsed?.chapter,
+            verse: parsed?.verse,
+          };
+        }
+      }
+    } catch {
+      // Continue to next fallback
+    }
+  }
+
+  // 5. Check server proxy if running in local backend dev environment
   try {
-    const serverRes = await fetch(`/api/bible/lookup?ref=${encodeURIComponent(cleanRef)}&translation=${translation}`);
+    const serverRes = await fetch(`/api/bible/lookup?ref=${encodeURIComponent(normalizedQuery)}&translation=${translation}`);
     if (serverRes.ok) {
       const serverData = await serverRes.json();
       if (serverData && serverData.text) {
         return {
-          reference: serverData.reference || cleanRef,
+          reference: serverData.reference || normalizedQuery,
           text: serverData.text,
           version: serverData.translation_name || translation.toUpperCase(),
           topic: "Scripture Study",
+          book: parsed?.book,
+          chapter: parsed?.chapter,
+          verse: parsed?.verse,
         };
       }
     }
-  } catch (_ignored) {
-    // Server not available (normal in static GitHub Pages)
+  } catch {
+    // Server not available
   }
 
-  // 4. If reference matches a book in our curated list, return closest book match
-  const parsed = parseBibleReference(cleanRef);
+  // 6. Closest Book Match fallback from Curated List if exact verse wasn't found online
   if (parsed) {
     const bookMatch = CURATED_BIBLE_QUOTES.find((q) => q.book?.toLowerCase() === parsed.book.toLowerCase());
-    if (bookMatch) return bookMatch;
+    if (bookMatch) {
+      return {
+        ...bookMatch,
+        reference: `${parsed.book} ${parsed.chapter}:${parsed.verse || "1"}`,
+      };
+    }
   }
 
   return null;
-}
-
-/**
- * Performs semantic Catholic scripture search.
- * Tries server-side / client Gemini if available, or seamlessly uses the client-side semantic matcher with 0 server dependency.
- */
-export async function searchWithGemini(query: string, translation: string = "DRA"): Promise<BibleVerse[]> {
-  const cleanQuery = query.trim().toLowerCase();
-
-  // 1. Try server-side endpoint if running in fullstack mode
-  try {
-    const response = await fetch("/api/gemini/search-scripture", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, translation }),
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.verses && data.verses.length > 0) {
-        return data.verses;
-      }
-    }
-  } catch (_ignored) {
-    // Expected on static GitHub Pages
-  }
-
-  // 2. Client-side semantic & thematic discovery engine
-  const matched = CURATED_BIBLE_QUOTES.filter((v) => {
-    const combined = `${v.reference} ${v.text} ${v.topic} ${v.insight || ""} ${(v.tags || []).join(" ")}`.toLowerCase();
-    
-    // Check keywords
-    const keywords = cleanQuery.split(/\s+/);
-    return keywords.some((kw) => kw.length > 2 && combined.includes(kw));
-  });
-
-  if (matched.length > 0) {
-    return matched;
-  }
-
-  // If no direct keyword match, return top curated highlights for the theme
-  return searchLocalBibleQuotes(query);
-}
-
-/**
- * Intelligent client-side style matcher
- * Analyzes passage tone, theme, and books to recommend harmonic aesthetic styling presets.
- * Works 100% offline and in static browser environments.
- */
-export async function getSmartStyleAdvice(reference: string, text: string): Promise<{
-  themeId: string;
-  fontFamily: string;
-  recommendedAspect: string;
-  reason: string;
-}> {
-  // Try server-side AI if available
-  try {
-    const res = await fetch("/api/gemini/suggest-style", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reference, text }),
-    });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch (_ignored) {
-    // Static fallback
-  }
-
-  // Intelligent client-side aesthetic inference
-  const combined = `${reference} ${text}`.toLowerCase();
-
-  // Marian & Mother of God
-  if (combined.includes("mary") || combined.includes("mother") || combined.includes("grace") || combined.includes("magnificat") || combined.includes("hail")) {
-    return {
-      themeId: "rose-quartz",
-      fontFamily: "Great Vibes",
-      recommendedAspect: "4:3",
-      reason: "Marian grace paired with elegant cursive script and soft rose tones",
-    };
-  }
-
-  // Eucharistic & Mass / Mystery
-  if (combined.includes("body") || combined.includes("blood") || combined.includes("bread") || combined.includes("chalice") || combined.includes("supper") || combined.includes("cathedral") || combined.includes("altar")) {
-    return {
-      themeId: "stained-glass",
-      fontFamily: "Cinzel",
-      recommendedAspect: "4:3",
-      reason: "Gothic cathedral jewel palette and classical Roman serif for Eucharistic reverence",
-    };
-  }
-
-  // Strength, Courage & Maccabees / Royalty
-  if (combined.includes("strength") || combined.includes("courage") || combined.includes("war") || combined.includes("king") || combined.includes("glory") || combined.includes("maccabees") || combined.includes("peter")) {
-    return {
-      themeId: "midnight-gold",
-      fontFamily: "Cinzel",
-      recommendedAspect: "4:3",
-      reason: "Regal obsidian dark with celestial gold lettering reflecting steadfast fortitude",
-    };
-  }
-
-  // Peace, Nature, Shepherds & Healing
-  if (combined.includes("peace") || combined.includes("pasture") || combined.includes("water") || combined.includes("rest") || combined.includes("shepherd") || combined.includes("refresh") || combined.includes("yoke")) {
-    return {
-      themeId: "botanical-sage",
-      fontFamily: "Playfair Display",
-      recommendedAspect: "4:3",
-      reason: "Peaceful botanical olive and serene serif typography for resting in the Lord",
-    };
-  }
-
-  // Wisdom, Sirach, Proverbs & Discernment
-  if (combined.includes("wisdom") || combined.includes("sirach") || combined.includes("proverbs") || combined.includes("son") || combined.includes("prudence") || combined.includes("counsel")) {
-    return {
-      themeId: "parchment",
-      fontFamily: "Cormorant Garamond",
-      recommendedAspect: "4:3",
-      reason: "Venerable ancient manuscript parchment and traditional Vulgate serif",
-    };
-  }
-
-  // Default timeless style
-  return {
-    themeId: "parchment",
-    fontFamily: "Cormorant Garamond",
-    recommendedAspect: "4:3",
-    reason: "Classic timeless Catholic manuscript presentation",
-  };
 }
 
 /**
@@ -311,7 +214,7 @@ export async function insertImageToOneNoteOfficeJS(base64DataUrl: string): Promi
       ]);
       return {
         success: true,
-        message: "Quote card copied to clipboard! (Press Ctrl+V / Cmd+V in OneNote or any note app to paste).",
+        message: "Quote card copied to clipboard! (Press Ctrl+V / Cmd+V in OneNote to paste).",
       };
     }
   } catch (clipboardErr) {
